@@ -1,0 +1,4 @@
+# Custom token-management wrapper
+src/Auth0.MyAccountApi/Wrapper
+src/Auth0.MyAccountApi/MyAccountApiClient.Internal.cs
+src/Auth0.MyAccountApi.Test/Unit/Wrapper
