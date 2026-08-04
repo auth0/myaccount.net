@@ -1,0 +1,9 @@
+{
+    "files": {
+        "src/Auth0.MyAccountApi/Auth0.MyAccountApi.csproj": [],
+        "src/Auth0.MyAccountApi/Auth0.MyAccountApi.Custom.props": [],
+        ".version": [],
+        "src/Auth0.MyAccountApi/Core/Public/Version.cs": []
+    },
+    "prefixVersion": false
+}
