@@ -1,4 +1,27 @@
+.gitignore
+.editorconfig
+
+README.md
+LICENSE
+CONTRIBUTING.md
+
+src/Auth0.MyAccountApi/Auth0.MyAccountApi.Custom.props
+
 # Custom token-management wrapper
 src/Auth0.MyAccountApi/Wrapper
 src/Auth0.MyAccountApi/MyAccountApiClient.Internal.cs
 src/Auth0.MyAccountApi.Test/Unit/Wrapper
+src/Auth0.MyAccountApi.Test/Auth0.MyAccountApi.Test.Custom.props
+
+# GitHub configuration, workflows, composite actions and templates (all custom)
+.github/
+.snyk
+
+# Release / versioning
+.shiprc
+.version
+CHANGELOG.md
+
+# Project metadata & assets
+NOTICE
+build/Auth0Icon.png
