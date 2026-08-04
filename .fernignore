@@ -13,24 +13,9 @@ src/Auth0.MyAccountApi/MyAccountApiClient.Internal.cs
 src/Auth0.MyAccountApi.Test/Unit/Wrapper
 src/Auth0.MyAccountApi.Test/Auth0.MyAccountApi.Test.Custom.props
 
-# GitHub configuration
-.github/CODEOWNERS
-.github/dependabot.yml
-
-# GitHub composite actions (all custom)
-.github/actions/
-
-# GitHub workflows (listed individually since Fern manages ci.yml in this folder)
-.github/workflows/build.yml
-.github/workflows/nuget-release.yml
-.github/workflows/release.yml
-.github/workflows/rl-secure.yml
-.github/workflows/snyk.yml
+# GitHub configuration, workflows, composite actions and templates (all custom)
+.github/
 .snyk
-
-# GitHub issue & PR templates
-.github/PULL_REQUEST_TEMPLATE.md
-.github/ISSUE_TEMPLATE/
 
 # Release / versioning
 .shiprc
