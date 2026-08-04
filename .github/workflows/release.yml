@@ -1,0 +1,84 @@
+name: Create NuGet and GitHub Release
+
+on:
+  pull_request:
+    types:
+      - closed
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  rl-scanner-myaccount-api:
+    uses: ./.github/workflows/rl-secure.yml
+    with:
+      project-path: "src/Auth0.MyAccountApi/Auth0.MyAccountApi.csproj"
+      artifact-name: "Auth0.MyAccountApi.tgz"
+    secrets:
+      RLSECURE_LICENSE: ${{ secrets.RLSECURE_LICENSE }}
+      RLSECURE_SITE_KEY: ${{ secrets.RLSECURE_SITE_KEY }}
+      SIGNAL_HANDLER_TOKEN: ${{ secrets.SIGNAL_HANDLER_TOKEN }}
+      PRODSEC_TOOLS_USER: ${{ secrets.PRODSEC_TOOLS_USER }}
+      PRODSEC_TOOLS_TOKEN: ${{ secrets.PRODSEC_TOOLS_TOKEN }}
+      PRODSEC_TOOLS_ARN: ${{ secrets.PRODSEC_TOOLS_ARN }}
+
+  release:
+    needs: [rl-scanner-myaccount-api]
+    uses: ./.github/workflows/nuget-release.yml
+    with:
+      dotnet-version: 10.0.x
+      project-paths: "['src/Auth0.MyAccountApi/Auth0.MyAccountApi.csproj']"
+    secrets:
+      nuget-token: ${{ secrets.NUGET_APIKEY }}
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-docs:
+    name: Generate API docs
+    needs: [release]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'release/'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # pin@7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # pin@6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install DocFX
+        run: dotnet tool install -g docfx
+
+      - name: Build docs
+        run: docfx docs-source/docfx.json
+
+      - name: Uploading Artifacts
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # pin@5.0.0
+        with:
+          path: docs
+
+  deploy-docs:
+    needs: generate-docs
+    name: Deploy API docs
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged && startsWith(github.event.pull_request.head.ref, 'release/'))
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # pin@5.0.0
