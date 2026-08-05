@@ -174,6 +174,10 @@ Per-request options (`RequestOptions`):
 
 Requests are retried automatically with exponential backoff and jitter on `408`, `429`, and `5XX` responses. The `Retry-After` and `X-RateLimit-Reset` headers are respected when present, and the delay is capped at 60 seconds.
 
+### Telemetry
+
+The SDK sends an `Auth0-Client` header on every request containing the SDK name (`MyAccount.NET`), version, and .NET runtime target (base64-encoded JSON). The header is injected automatically and requires no configuration. It carries no tokens or personal data. See [Telemetry](./EXAMPLES.md#telemetry) to opt out.
+
 ### Error Handling
 
 When the API returns a non-success status code (4xx or 5xx), the SDK throws a typed subclass of `MyAccountApiException`. Each subclass exposes a strongly-typed `ErrorResponse` body, so validation failures can be surfaced field by field - see [Error Handling](./EXAMPLES.md#error-handling).

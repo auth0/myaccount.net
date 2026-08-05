@@ -41,6 +41,7 @@ Unless an example constructs its own client, `client` refers to a configured `My
 - [Timeouts](#timeouts)
 - [Base URL](#base-url)
 - [HttpClient Lifetime](#httpclient-lifetime)
+- [Telemetry](#telemetry)
 
 ---
 
@@ -939,3 +940,43 @@ var client = new MyAccountClient(new MyAccountClientOptions
 ```
 
 The `ITokenProvider` is never disposed by the client - the caller owns its lifetime.
+
+---
+
+## Telemetry
+
+Every request carries an `Auth0-Client` header so Auth0 can understand SDK adoption and prioritise support. No configuration is required. The value is base64url-encoded JSON:
+
+```json
+{ "name": "MyAccount.NET", "version": "1.0.0", "env": { "target": "NET8.0" } }
+```
+
+It contains only the SDK name, the SDK version, and the .NET runtime target - never tokens, user identifiers, or request payloads.
+
+The header is applied before `AdditionalHeaders`, so you can override it - client-wide:
+
+```csharp
+using Auth0.MyAccountApi;
+
+var client = new MyAccountClient(new MyAccountClientOptions
+{
+    Domain = "<YOUR_AUTH0_DOMAIN>",
+    TokenProvider = tokenProvider,
+    AdditionalHeaders = new Dictionary<string, string?>
+    {
+        { "Auth0-Client", myOwnAgentString }
+    }
+});
+```
+
+or for a single request via `RequestOptions.AdditionalHeaders`:
+
+```csharp
+await client.Factors.ListAsync(new RequestOptions
+{
+    AdditionalHeaders = new Dictionary<string, string?>
+    {
+        { "Auth0-Client", myOwnAgentString }
+    }
+});
+```
