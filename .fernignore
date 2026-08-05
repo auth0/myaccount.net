@@ -6,6 +6,9 @@ EXAMPLES.md
 LICENSE
 CONTRIBUTING.md
 
+# DocFX documentation source
+docs-source/
+
 src/Auth0.MyAccountApi/Auth0.MyAccountApi.Custom.props
 
 # Custom token-management wrapper

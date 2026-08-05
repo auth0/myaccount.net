@@ -1,0 +1,12 @@
+- name: Getting Started
+  href: getting-started.md
+- name: Authentication
+  href: authentication.md
+- name: Authentication Methods
+  href: authentication-methods.md
+- name: Connected Accounts
+  href: connected-accounts.md
+- name: Configuration
+  href: configuration.md
+- name: Pagination & Error Handling
+  href: pagination-and-errors.md
