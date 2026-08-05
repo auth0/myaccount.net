@@ -11,6 +11,10 @@ docs-source/
 
 src/Auth0.MyAccountApi/Auth0.MyAccountApi.Custom.props
 
+# Auth0-Client telemetry header
+src/Auth0.MyAccountApi/Core/Public/ClientOptions.Custom.cs
+src/Auth0.MyAccountApi.Test/Core/TelemetryTests.cs
+
 # Custom token-management wrapper
 src/Auth0.MyAccountApi/Wrapper
 src/Auth0.MyAccountApi/MyAccountApiClient.Internal.cs
