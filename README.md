@@ -7,18 +7,19 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)](https://github.com/auth0/myaccount.net/blob/main/LICENSE)
 
 
-📚 [Documentation](#documentation) • 🚀 [Getting Started](#getting-started) • 💬 [Feedback](#feedback)
+📚 [Documentation](#documentation) • 🚀 [Getting Started](#getting-started) • 💻 [Usage](#usage) • 💬 [Feedback](#feedback)
 
 </div>
 
 ---
 
-The Auth0 My Account API SDK for C# provides convenient access to the [Auth0 My Account API](https://auth0.com/docs/api/myaccount). The My Account API lets an authenticated end user manage their own account — enrolling and managing authentication methods (factors) and linking external identity providers as connected accounts. All operations run in the context of the signed-in user's access token.
+The Auth0 My Account API SDK for C# provides convenient access to the [Auth0 My Account API](https://auth0.com/docs/api/myaccount). The My Account API lets an authenticated end user manage their own account - enrolling and managing authentication methods (factors) and linking external identity providers as connected accounts. All operations run in the context of the signed-in user's access token.
 
 ## Documentation
 
-- [Docs site](https://www.auth0.com/docs) — explore our docs site and learn more about Auth0.
-- [API Reference](./reference.md) — complete API reference documentation.
+- [Examples](./EXAMPLES.md) - code samples for every operation and SDK feature.
+- [Docs site](https://www.auth0.com/docs) - explore our docs site and learn more about Auth0.
+- [API Reference](./reference.md) - complete API reference documentation.
 
 ## Getting Started
 
@@ -38,13 +39,15 @@ The SDK is available on [NuGet](https://www.nuget.org/packages/Auth0.MyAccountAp
 dotnet add package Auth0.MyAccountApi
 ```
 
-### Usage
+### Prerequisites
 
-Because the My Account API operates on behalf of the signed-in end user, every request is authorized with that user's access token. The recommended entry point is `MyAccountClient`, which wraps the low-level `MyAccountApiClient` and resolves the user's token on each request through an `ITokenProvider`.
+- An Auth0 account ([sign up for free](https://auth0.com/signup)).
+- An application configured to request an access token for the My Account API audience (`https://{yourDomain}/me/`), with the scopes matching the operations you intend to call (for example `read:me:authentication_methods`, `create:me:authentication_methods`, `delete:me:connected_accounts`).
+- A signed-in end user. Every My Account API call is made **on behalf of that user**, using their access token - not a machine-to-machine token.
 
-#### Custom Token Source (recommended)
+### Your First Request
 
-Use `DelegateTokenProvider` to supply the current user's access token from your own source — an in-memory session, a secure store, a cache, or a refresh-token exchange. The delegate is invoked on every request, so you remain in control of how the token is obtained and refreshed.
+The recommended entry point is `MyAccountClient`, which wraps the low-level `MyAccountApiClient` and resolves the user's token on each request through an `ITokenProvider`:
 
 ```csharp
 using Auth0.MyAccountApi;
@@ -57,129 +60,107 @@ var client = new MyAccountClient(new MyAccountClientOptions
     )
 });
 
-var authenticationMethods = await client.AuthenticationMethods.ListAsync(
+var methods = await client.AuthenticationMethods.ListAsync(
     new ListAuthenticationMethodsRequestParameters()
 );
+
+foreach (var method in methods.AuthenticationMethods)
+{
+    Console.WriteLine(method.Type);
+}
 ```
 
 > **Note**
-> The Base URL is constructed automatically as `https://{Domain}/me/v1`. The domain must not include a scheme prefix or a path/trailing slash — use `"your-tenant.auth0.com"`, not `"https://your-tenant.auth0.com"` or `"your-tenant.auth0.com/"`. An `ArgumentException` is thrown if an invalid domain value is detected.
+> The Base URL is constructed automatically as `https://{Domain}/me/v1`. The domain must not include a scheme prefix or a path/trailing slash - use `"your-tenant.auth0.com"`, not `"https://your-tenant.auth0.com"` or `"your-tenant.auth0.com/"`. An `ArgumentException` is thrown if an invalid domain value is detected.
 
-Implement `ITokenProvider` directly if you need custom token-lifecycle logic beyond a delegate:
+### Exploring the Client
 
-```csharp
-using Auth0.MyAccountApi;
+The client exposes the My Account API through strongly-typed sub-clients:
 
-public sealed class MyTokenProvider : ITokenProvider
-{
-    public Task<string> GetTokenAsync(CancellationToken cancellationToken = default)
-    {
-        // Your custom logic to obtain (and cache/refresh) the user's access token.
-        return Task.FromResult("<USER_ACCESS_TOKEN>");
-    }
-}
-```
+| Resource | Description | Examples |
+|---|---|---|
+| `client.Factors` | List factors enabled for the tenant and available for enrollment. | [Factors](./EXAMPLES.md#factors) |
+| `client.AuthenticationMethods` | List, enrol, verify, update, and delete the user's authentication methods. | [Authentication Methods](./EXAMPLES.md#authentication-methods) |
+| `client.ConnectedAccounts` | Link, complete, list, and delete accounts connected to external identity providers. | [Connected Accounts](./EXAMPLES.md#connected-accounts) |
+| `client.ConnectedAccounts.Connections` | List connections available for account linking. | [Discovering available connections](./EXAMPLES.md#discovering-available-connections) |
 
-#### Static Token
+---
 
-If you already hold a bearer token, the recommended approach is still `MyAccountClient` with a `DelegateTokenProvider`. This keeps token handling consistent and gives you access to all wrapper features such as retries and timeouts:
+## Usage
 
-```csharp
-using Auth0.MyAccountApi;
+> **Full code samples for everything below live in [EXAMPLES.md](./EXAMPLES.md).** This section summarises the concepts and links to the matching example.
 
-var client = new MyAccountClient(new MyAccountClientOptions
-{
-    Domain = "<YOUR_AUTH0_DOMAIN>",
-    TokenProvider = new DelegateTokenProvider(_ => Task.FromResult("<USER_ACCESS_TOKEN>"))
-});
-```
+### Authentication
 
-Alternatively, you can use `MyAccountApiClient` directly. This is the underlying generated client and accepts a static token without any token lifecycle management — the token will not be refreshed automatically. This approach is only recommended for advanced scenarios such as test harnesses, middleware, or environments that inject tokens externally:
+The SDK obtains the end user's access token through an `ITokenProvider`. The provider is invoked on **every** request, so you remain in control of how the token is obtained, cached, and refreshed. `DelegateTokenProvider` covers most cases; implement `ITokenProvider` yourself for custom token-lifecycle logic.
 
-```csharp
-using Auth0.MyAccountApi;
+Because the token is resolved per request, a single `MyAccountClient` can be registered as a singleton and still act on behalf of whichever user is making the current request.
 
-var client = new MyAccountApiClient(
-    token: "<USER_ACCESS_TOKEN>",
-    clientOptions: new ClientOptions
-    {
-        BaseUrl = "https://<YOUR_AUTH0_DOMAIN>/me/v1"
-    }
-);
-```
+| Scenario | Example |
+|---|---|
+| Supply the token from your own session, cache, or store | [Custom Token Source](./EXAMPLES.md#custom-token-source-recommended) |
+| Custom token-lifecycle logic | [Implementing ITokenProvider](./EXAMPLES.md#implementing-itokenprovider) |
+| You already hold a bearer token | [Static Token](./EXAMPLES.md#static-token) |
+| Register the client in DI and read the token off the current request | [ASP.NET Core Integration](./EXAMPLES.md#aspnet-core-integration) |
 
-### Working with Authentication Methods
+### Working With Factors and Authentication Methods
 
-The `AuthenticationMethods` resource lets the user list, enrol, verify, update, and delete their factors.
+`client.Factors.ListAsync` reports which factors the tenant has enabled and whether each can be used as a `primary` or `secondary` method - check this before offering enrollment. See [Listing Available Factors](./EXAMPLES.md#listing-available-factors).
 
-```csharp
-using Auth0.MyAccountApi;
+`client.AuthenticationMethods.ListAsync` returns the signed-in user's methods, optionally filtered by factor type. Each `AuthenticationMethod` is a discriminated union over the supported factor types: use `Visit`/`Match` to handle every case exhaustively, or the `Is*` / `TryAs*` members when you only care about one type. See [Listing Authentication Methods](./EXAMPLES.md#listing-authentication-methods) and [Working With the AuthenticationMethod Union](./EXAMPLES.md#working-with-the-authenticationmethod-union).
 
-// List authentication methods, optionally filtered by factor type.
-var methods = await client.AuthenticationMethods.ListAsync(
-    new ListAuthenticationMethodsRequestParameters { Type = FactorTypeEnum.Password }
-);
+Enrollment is always a two-step flow - `CreateAsync` starts it and returns an `Id` plus an `AuthSession`, then `VerifyAsync` confirms it with whatever proof the factor requires. The `CreateAsync` response is a discriminated union whose variant depends on the factor:
 
-// Start enrollment of a new factor (here, a phone authentication method).
-await client.AuthenticationMethods.CreateAsync(
-    new CreateAuthenticationMethodRequestContent(
-        new CreateAuthenticationMethodRequestContent.Phone(
-            new CreatePhoneAuthenticationMethod { PhoneNumber = "phone_number" }
-        )
-    )
-);
+| Factor | Create response accessor | Verify payload | Example |
+|---|---|---|---|
+| Email | `AsMfaBaseCreationResponse()` | `VerifyEmailAuthenticationMethod` | [Email](./EXAMPLES.md#email) |
+| Phone | `AsMfaBaseCreationResponse()` | `VerifyPhoneAuthenticationMethod` | [Phone](./EXAMPLES.md#phone-sms-or-voice) |
+| Push notification | `AsMfaBaseCreationResponse()` | `VerifyPushNotificationAuthenticationMethod` | - |
+| TOTP | `AsQrCodeCreationResponse()` | `VerifyTotpAuthenticationMethod` | [TOTP](./EXAMPLES.md#totp-authenticator-app) |
+| Recovery code | `AsRecoveryCodeCreationResponse()` | `VerifyRecoveryCodeAuthenticationMethod` | [Recovery Code](./EXAMPLES.md#recovery-code) |
+| Password | `AsPasswordCreationResponse()` | `VerifyPasswordAuthenticationMethod` | [Changing a Password](./EXAMPLES.md#changing-a-password) |
+| Passkey | `AsPasskeyCreationResponse()` | `VerifyPasskeyAuthenticationMethod` | [Passkeys and WebAuthn](./EXAMPLES.md#passkeys-and-webauthn) |
 
-// Confirm enrollment.
-await client.AuthenticationMethods.VerifyAsync(
-    "authentication_method_id",
-    new VerifyEmailAuthenticationMethod { AuthSession = "Fe26.2**05c400ed...", OtpCode = "123456" }
-);
-```
+`CreateAuthenticationMethodRequestContent` models the seven factor types above. The create response can additionally surface `AsWebAuthnCreationResponse()`, verified with `VerifyWebAuthnPlatformAuthenticationMethod` or `VerifyWebAuthnRoamingAuthenticationMethod`; WebAuthn platform and roaming methods otherwise appear on list and get responses as `AsWebauthnPlatform()` / `AsWebauthnRoaming()`.
+
+Existing methods can be retrieved, renamed (or switched between SMS and voice), and deleted - see [Managing Existing Authentication Methods](./EXAMPLES.md#managing-existing-authentication-methods).
+
+### Connected Accounts
+
+Linking an external identity provider is a two-step, redirect-based flow: `CreateAsync` returns a connect URI and ticket to redirect the user to, and `CompleteAsync` exchanges the connect code from your callback. The `RedirectUri` must match across both steps, and the `CodeVerifier` must match the `CodeChallenge` sent in step 1.
+
+| Task | Example |
+|---|---|
+| Start the link flow | [1. Start the link flow](./EXAMPLES.md#1-start-the-link-flow) |
+| Complete the link flow | [2. Complete the link flow](./EXAMPLES.md#2-complete-the-link-flow) |
+| List and remove connected accounts | [Listing and removing](./EXAMPLES.md#listing-and-removing-connected-accounts) |
+| Filter by one or many connections | [Filtering by connection](./EXAMPLES.md#filtering-by-connection) |
+| Find out which connections the user can link | [Discovering available connections](./EXAMPLES.md#discovering-available-connections) |
 
 ### Pagination
 
-List endpoints that return collections are paginated. The SDK returns a `Pager<T>`, which implements `IAsyncEnumerable<T>`, so you can iterate every item across pages with `await foreach`:
+The connected-accounts list endpoints are cursor-paginated and return a `Pager<T>`, which implements `IAsyncEnumerable<T>` - `await foreach` over it and the SDK fetches subsequent pages transparently. You can also iterate `AsPagesAsync()` a page at a time, or drive the cursor manually via `CurrentPage`, `HasNextPage`, and `GetNextPageAsync()`. See [Pagination](./EXAMPLES.md#pagination).
 
-```csharp
-using Auth0.MyAccountApi;
+> **Note**
+> `Take` accepts values from 1 to 20 and defaults to 10. `client.AuthenticationMethods.ListAsync` and `client.Factors.ListAsync` are not paginated - they return the full collection.
 
-var connectedAccounts = await client.ConnectedAccounts.ListAsync(
-    new ListConnectedAccountsRequestParameters
-    {
-        Connection = "connection",
-        From = "from",
-        Take = 1,
-    }
-);
+### Configuration
 
-await foreach (var connectedAccount in connectedAccounts)
-{
-    // Do something with connectedAccount.
-}
-```
+Options can be configured at the client level (affecting all requests) or per request. See [Request Options](./EXAMPLES.md#request-options) for a worked example, and the dedicated examples for [Retries](./EXAMPLES.md#retries), [Timeouts](./EXAMPLES.md#timeouts), [Base URL](./EXAMPLES.md#base-url), [Cancellation](./EXAMPLES.md#cancellation), and [HttpClient Lifetime](./EXAMPLES.md#httpclient-lifetime).
 
-### Request Options
+Client options (`MyAccountClientOptions`):
 
-`RequestOptions` can be passed per request to override client-level configuration:
+| Option | Description |
+|---|---|
+| `TokenProvider` | **Required.** Supplies the end user's access token on every request. |
+| `Domain` | Auth0 tenant domain (e.g. `"your-tenant.auth0.com"`); used to construct the base URL as `https://{Domain}/me/v1` |
+| `BaseUrl` | Override the base URL directly; takes precedence over `Domain` |
+| `HttpClient` | Provide a custom `HttpClient` |
+| `AdditionalHeaders` | Additional HTTP headers sent with every request |
+| `MaxRetries` | Maximum retry attempts (default `2`) |
+| `Timeout` | Request timeout (default 30 seconds) |
 
-```csharp
-using Auth0.MyAccountApi;
-
-var method = await client.AuthenticationMethods.GetAsync(
-    "authentication_method_id",
-    new RequestOptions
-    {
-        MaxRetries = 5,                       // More retries for this call.
-        Timeout = TimeSpan.FromSeconds(3),
-        AdditionalHeaders = new Dictionary<string, string?>
-        {
-            { "X-Request-Id", "abc-123" }
-        }
-    }
-);
-```
-
-Available request options:
+Per-request options (`RequestOptions`):
 
 | Option | Description |
 |---|---|
@@ -187,74 +168,15 @@ Available request options:
 | `Timeout` | Request timeout |
 | `AdditionalHeaders` | Additional HTTP headers to send |
 | `AdditionalQueryParameters` | Additional query parameters to append |
+| `AdditionalBodyProperties` | Additional JSON body properties |
+| `BaseUrl` | Override the base URL for this request |
+| `HttpClient` | Override the `HttpClient` for this request |
 
-### Raw Responses
-
-Access raw HTTP response data (status code, headers, URL) alongside parsed response data using the `.WithRawResponse()` method:
-
-```csharp
-using Auth0.MyAccountApi;
-
-var result = await client.AuthenticationMethods
-    .ListAsync(new ListAuthenticationMethodsRequestParameters())
-    .WithRawResponse();
-
-// Access the parsed data.
-var data = result.Data;
-
-// Access raw response metadata.
-Console.WriteLine($"Status: {(int)result.RawResponse.StatusCode}");
-Console.WriteLine($"URL: {result.RawResponse.Url}");
-
-// Access specific headers (case-insensitive).
-if (result.RawResponse.Headers.TryGetValue("X-Request-Id", out var requestId))
-{
-    Console.WriteLine($"Request ID: {requestId}");
-}
-```
-
-`RawResponse` exposes `StatusCode` (`HttpStatusCode`), `Url` (`Uri`), and `Headers` (`ResponseHeaders`).
+Requests are retried automatically with exponential backoff and jitter on `408`, `429`, and `5XX` responses. The `Retry-After` and `X-RateLimit-Reset` headers are respected when present, and the delay is capped at 60 seconds.
 
 ### Error Handling
 
-When the API returns a non-success status code (4xx or 5xx), the SDK throws a typed subclass of `MyAccountApiException`. These can be caught using standard C# exception handling:
-
-```csharp
-using Auth0.MyAccountApi;
-
-try
-{
-    var response = await client.AuthenticationMethods.CreateAsync(request);
-}
-catch (NotFoundError e)
-{
-    Console.WriteLine(e.Body);
-    Console.WriteLine(e.StatusCode);
-}
-catch (UnauthorizedError e)
-{
-    Console.WriteLine(e.Body);
-}
-catch (MyAccountApiException e)
-{
-    // Catch any other API error.
-    Console.WriteLine($"Status: {e.StatusCode}");
-    Console.WriteLine(e.Body);
-
-    // Access the raw HTTP response (status code, URL, headers) off the exception.
-    var rawResponse = e.RawResponse;
-    if (rawResponse != null)
-    {
-        Console.WriteLine(rawResponse.Url);
-        if (rawResponse.Headers.TryGetValue("X-Request-Id", out var requestId))
-        {
-            Console.WriteLine($"Request ID: {requestId}");
-        }
-    }
-}
-```
-
-Available error types:
+When the API returns a non-success status code (4xx or 5xx), the SDK throws a typed subclass of `MyAccountApiException`. Each subclass exposes a strongly-typed `ErrorResponse` body, so validation failures can be surfaced field by field - see [Error Handling](./EXAMPLES.md#error-handling).
 
 | Type | Status Code | Description |
 |---|---|---|
@@ -265,99 +187,25 @@ Available error types:
 | `UnsupportedMediaTypeError` | 415 | Unsupported request content type |
 | `TooManyRequestsError` | 429 | Rate limit exceeded |
 
+All of the above derive from `MyAccountApiException`, which in turn derives from `MyAccountException` - the base type for every exception this SDK raises.
+
+`ErrorResponse` exposes `Type`, `Status`, `Title`, `Detail`, and an optional `ValidationErrors` collection, where each `ValidationError` carries `Detail`, `Field`, `Pointer`, and `Source`.
+
+### Raw Responses
+
+Use `.WithRawResponse()` to access the status code, URL, and headers alongside the parsed response data. See [Raw Responses](./EXAMPLES.md#raw-responses).
+
+### Explicit Null Values
+
+By default, fields with `null` values are omitted from the request. Query parameters modelled as `Optional<T?>` let you distinguish "omit this parameter" from "send it explicitly as null" - for example to opt out of the default `Take = 10`. Assigning a value directly also works; an implicit conversion wraps it for you. See [Explicit Null Values](./EXAMPLES.md#explicit-null-values).
+
 ### Forward Compatible Enums
 
-This SDK uses forward-compatible enums that can handle unknown values gracefully. This means new server-side values won't break your code:
-
-```csharp
-using Auth0.MyAccountApi;
-
-// Using a built-in value.
-var factorType = FactorTypeEnum.Password;
-
-// Using a custom value.
-var customFactorType = FactorTypeEnum.FromCustom("custom-value");
-
-// Using in a switch statement.
-switch (factorType.Value)
-{
-    case FactorTypeEnum.Values.Password:
-        Console.WriteLine("Password");
-        break;
-    default:
-        Console.WriteLine($"Unknown value: {factorType.Value}");
-        break;
-}
-
-// Explicit casting.
-string factorTypeString = (string)FactorTypeEnum.Password;
-FactorTypeEnum factorTypeFromString = (FactorTypeEnum)"password";
-```
-
-### Retries
-
-The SDK automatically retries requests with exponential backoff on the following status codes:
-
-- `408` (Timeout)
-- `429` (Too Many Requests)
-- `5XX` (Server Errors)
-
-The default retry limit is 2 attempts. Configure this via the `MaxRetries` option:
-
-```csharp
-using Auth0.MyAccountApi;
-
-var client = new MyAccountClient(new MyAccountClientOptions
-{
-    Domain = "<YOUR_AUTH0_DOMAIN>",
-    TokenProvider = tokenProvider,
-    MaxRetries = 5
-});
-```
-
-You can also override `MaxRetries` per request via `RequestOptions`.
-
-### Timeouts
-
-The SDK defaults to a 30 second timeout. Configure this via the `Timeout` option:
-
-```csharp
-using Auth0.MyAccountApi;
-
-var client = new MyAccountClient(new MyAccountClientOptions
-{
-    Domain = "<YOUR_AUTH0_DOMAIN>",
-    TokenProvider = tokenProvider,
-    Timeout = TimeSpan.FromSeconds(10)
-});
-```
-
-You can also override `Timeout` per request via `RequestOptions`.
-
-### Base URL
-
-When `Domain` is set, the Base URL defaults to `https://{Domain}/me/v1`. Set `BaseUrl` directly to override this behaviour — for example, when targeting a custom domain or a local test server. When both are provided, `BaseUrl` takes precedence.
-
-```csharp
-using Auth0.MyAccountApi;
-
-var client = new MyAccountClient(new MyAccountClientOptions
-{
-    BaseUrl = "https://custom.example.com/me/v1",
-    TokenProvider = tokenProvider
-});
-```
+This SDK uses forward-compatible enums that handle unknown values gracefully, so new server-side values won't break your code. Use `FromCustom` for values the SDK doesn't know about, and switch on `.Value` with a `default` branch. See [Forward Compatible Enums](./EXAMPLES.md#forward-compatible-enums).
 
 ## API Reference
 
-The full API reference is available in [reference.md](./reference.md). The client exposes the following resources:
-
-| Resource | Description |
-|---|---|
-| `client.Factors` | List factors enabled for the tenant and available for enrollment. |
-| `client.AuthenticationMethods` | List, enrol, verify, update, and delete the user's authentication methods. |
-| `client.ConnectedAccounts` | Link, complete, list, and delete accounts connected to external identity providers. |
-| `client.ConnectedAccounts.Connections` | List connections available for account linking. |
+The full API reference is available in [reference.md](./reference.md).
 
 ## Feedback
 
