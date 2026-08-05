@@ -4,19 +4,24 @@ Configure additional MSBuild properties for your project in this file:
 - Step 2: Modify this file to your liking.
 -->
 <Project>
-  <!--
-    <PropertyGroup>
-        <Title>Contoso SDK</Title>
-        <Authors>Contoso</Authors>
-        <Company>Contoso</Company>
-        <AssemblyName>Contoso.Sdk</AssemblyName>
-        <AssemblyTitle>Contoso SDK</AssemblyTitle>
-        <PackageIcon>icon.png</PackageIcon>
-    </PropertyGroup>
-    <ItemGroup>
-        <None Include="..\..\icon.png" Pack="true" PackagePath="" />
-    </ItemGroup>
-    -->
+  <PropertyGroup>
+    <Product>Auth0.MyAccountApi</Product>
+    <Title>Auth0 My Account API SDK</Title>
+    <Description>C# SDK for the Auth0 My Account API, letting an authenticated end user manage their own account - enrolling and managing authentication methods (factors) and linking external identity providers as connected accounts.</Description>
+    <Authors>Auth0</Authors>
+    <Company>Auth0</Company>
+    <Copyright>Auth0® Inc.</Copyright>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <PackageTags>auth0;authentication;myaccount;openid connect;oidc;oauth2</PackageTags>
+    <PackageIcon>Auth0Icon.png</PackageIcon>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/auth0/myaccount.net</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/auth0/myaccount.net</PackageProjectUrl>
+    <PackageReleaseNotes>
+      https://github.com/auth0/myaccount.net/blob/main/CHANGELOG.md
+    </PackageReleaseNotes>
+  </PropertyGroup>
 
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
@@ -26,13 +31,15 @@ Configure additional MSBuild properties for your project in this file:
   <PropertyGroup>
     <AssemblyVersion>$(AssemblyVersionNumber)</AssemblyVersion>
     <AssemblyFileVersion>$(AssemblyVersionNumber)</AssemblyFileVersion>
+    <FileVersion>$(AssemblyVersionNumber)</FileVersion>
     <InformationalVersion>$(Version)</InformationalVersion>
     <PackageVersion>$(Version)</PackageVersion>
-  </PropertyGroup>
-  <PropertyGroup>
-    <PackageProjectUrl>https://github.com/auth0/myaccount.net</PackageProjectUrl>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../build/Auth0Icon.png" Pack="true" Visible="false" PackagePath=""/>
   </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1570;CS1573;CS1587</NoWarn>
+  </PropertyGroup>
 </Project>

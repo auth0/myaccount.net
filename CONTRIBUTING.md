@@ -6,7 +6,7 @@ Thanks for your interest in contributing to this SDK! This document provides gui
 
 ### Prerequisites
 
-- .NET SDK (version compatible with the target frameworks: net462, net8.0, netstandard2.0)
+- .NET SDK (version compatible with the target frameworks: net462, net8.0, net9.0, netstandard2.0)
 
 ### Installation
 
