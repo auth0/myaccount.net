@@ -1,4 +1,4 @@
-![C# SDK for Auth0 MyAccount](https://cdn.auth0.com/website/sdks/banners/myaccount-net-banner.png)
+![C# SDK for Auth0 MyAccount](https://cdn.auth0.com/website/sdks/banners/myaccount-dotnet.png)
 
 <div align="center">
 
